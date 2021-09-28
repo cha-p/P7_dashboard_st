@@ -26,7 +26,28 @@ data = pd.read_csv("app_test.csv")
 model = pickle.load(open("scoring_model_f2.sav", 'rb'))
 
 data_X = data.drop(columns="SK_ID_CURR")
-# print(model.predict(data_X))
+
+# features
+var_cat = []
+for col in data_X.columns:
+    if data_X[col].dtypes == object:
+        var_cat.append(col)
+var_num = data_X.columns
+var_num = var_num.drop(var_cat)
+name_features = model[0].transformers_[0][1][0].get_feature_names(var_cat)
+for i in var_num.values:
+    name_features = np.append(name_features, i)
+
+# lime
+x_transformed = pd.DataFrame(model[0].transform(data_X),
+                             columns=name_features,
+                             index=data_X.index)
+
+lime1 = LimeTabularExplainer(x_transformed,
+                             feature_names=name_features,
+                             class_names=["Solvable", "Non Solvable"],
+                             discretize_continuous=False, random_state=42)
+
 
 
 # Layout & Navigation panel
@@ -34,34 +55,48 @@ st.set_page_config(page_title="Dashboard",
                    page_icon="☮",
                    initial_sidebar_state="expanded")
 sb = st.sidebar # add a side bar 
-sb.write('# Sommaire')
+sb.write('# Navigation')
 sb.write('###')
 rad1 = sb.radio('Pages',('🏠 Accueil', 
                          '👨‍ Données relatives aux clients'))
 
-# ecrire fonction pour faire page ex et P pour un client donné
-#def boxplot(y_app, valeur):
-    #fig = go.Figure()
-    #fig.add_trace(go.Box(
-        #y=y_app,
-        #boxpoints=False,
-        #boxmean=True,
-        #name='essai'))
-    #fig.add_hline(y=valeur, line_width=3, line_color="red")
-    #fig.update_layout(autosize=False,
-                      #width=500,
-                      #height=500)
-    #fig.show()
+# Fonction pour faire boxplot/pie plotly pour un client donné
+def boxplot(input_d, valeur):
+    if data[str(input_d)].dtypes == 'O':
+        x = data[input_d].value_counts()/len(data)*100
+        fig = px.pie(values=x,
+                    names=data[input_d].value_counts().index)
+        fig.update_traces(textposition='outside', textinfo='percent+label')
+        fig.update(layout_showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+    elif  set(data[str(input_d)].unique()) == set([0,1]):
+        x = data[input_d].value_counts()/len(data)*100
+        fig = px.pie(values=x,
+                     names=data[input_d].value_counts().index)
+        fig.update_traces(textposition='outside', textinfo='percent+label')
+        fig.update(layout_showlegend=False)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        fig = go.Figure()
+        fig.add_trace(go.Box(y=data[str(input_d)],
+                             boxpoints=False,
+                             boxmean=True,
+                             name=str(input_d)))
+        if str(valeur.values[0]) != 'nan':
+            fig.add_hline(y=valeur.values[0], line_width=3, line_color="#ff7400")
+        st.plotly_chart(fig, use_container_width=True)
+
+       
 
 # Déroulement menu en fonction choix
 if rad1 == '🏠 Accueil': # with this we choose which container to display on the screen
     st.title("Dashboard\n ----")
-    st.header("**OpenClassrooms Data Scientist, Projet 7, Sept. 2021**")
-    st.markdown("This project was composed of two main objectives:")
-    st.markdown("- **Develop a scoring machine learning model** to predict the solvency of clients of a bank-like company (i.e. probability of credit payment failure). It is therefore a **binary classification issue**. Class 0 is solvent client whereas class 1 represents clients with payment difficulties.")
-    st.markdown("- **Build an interactive dashboard** allowing interpretations of these probabilities and improve the company's knowledge on its clients.")
-    st.markdown("")
-    st.markdown("Vous pouvez sélectionner l'identifiant du client souhaité sur la barre de gauche.")
+    #st.header("****")
+    st.markdown("Cette application interactive est un outil d'aide à la décision pour l'octroi de prêt banquaire.")
+    st.markdown("Vous trouverez à gauche sur l'onglet 'Données relatives aux clients' les deux principales fonctionnalités:")
+    st.markdown("- Un outil permettant l'exploration des données d'un client sélectionné ainsi que la possibilité de comparer ce client aux autres clients de la banque.")
+    st.markdown("- Un outil permettant la visualisation de la probabilité d'être Non solvable, l'interprétation de cette probabilité (Non solvable ou solvable) ainsi que la descriptions des variables ayant influencées cette prédiction.")
+
 elif rad1 == '👨‍ Données relatives aux clients':
     #np.random.seed(13) # one major change is that client is directly asked as input since sidebar
     sb.write('### ')
@@ -69,63 +104,115 @@ elif rad1 == '👨‍ Données relatives aux clients':
     input_client = sb.selectbox("Veuillez sélectionner l'identifiant du client", label_test)
     sb.write('### ')
     #sb.markdown('## Données ou prédiction ?')
-    rad2 = sb.radio('Données ou prédiction ?',['🔎 Exploration des données',
-                                               '📉 Prédiction'])
+    rad2 = sb.radio('Exploration des données ou prédiction ?',
+                    ['🔎 Exploration des données', '📉 Prédiction'])
     
 
     if rad2 == '🔎 Exploration des données':
-        st.subheader("**Exploration des données**")
+        st.title("**Exploration des données**")
+        st.write('###')
         st.write('**ID client : **', str(input_client))
-        st.markdown("Données brutes:")
+        st.write('##')
+        st.markdown("#### Données brutes:")
         st.write(data[data['SK_ID_CURR']==input_client])
         st.write('###')
+        st.markdown("#### Exploration des données et Comparaisons avec les autres clients :")
         col1, col2 = st.columns(2)
         with col1:
             input_d1 = st.selectbox("Veuillez sélectionner la variable souhaitée", data_X.columns.values)
             valeur = data.loc[data['SK_ID_CURR']==input_client, input_d1]
-            st.write("Valeur : ", str(valeur.to_numpy()[0]))
-            if data[str(input_d1)].dtypes == 'O':
-                x = data[input_d1].value_counts()/len(data)*100
-                fig = px.pie(values=x,
-                             names=data[input_d1].value_counts().index)
-                fig.update_traces(textposition='outside', textinfo='percent+label')
-                fig.update(layout_showlegend=False)
-                st.plotly_chart(fig, use_container_width=True)
-            elif  set(data[str(input_d1)].unique()) == set([0,1]):
-                x = data[input_d1].value_counts()/len(data)*100
-                fig = px.pie(values=x,
-                             names=data[input_d1].value_counts().index)
-                fig.update_traces(textposition='outside', textinfo='percent+label')
-                fig.update(layout_showlegend=False)
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                fig = go.Figure()
-                fig.add_trace(go.Box(y=data[str(input_d1)],
-                                     boxpoints=False,
-                                     boxmean=True,
-                                     name=str(input_d1)))
-                if str(valeur.values[0]) != 'nan':
-                    fig.add_hline(y=valeur.values[0], line_width=3, line_color="red")
-                #fig.update_layout(autosize=False,
-                              #width=500,
-                              #height=500)
-                st.plotly_chart(fig, use_container_width=True)
+            st.write("Valeur du client : ", str(valeur.to_numpy()[0]))
+            boxplot(input_d1, valeur)
         with col2:
             input_d2 = st.selectbox("", data_X.columns.values)
             valeur2 = data.loc[data['SK_ID_CURR']==input_client, input_d2]
-            st.write("Valeur : ", str(valeur2.to_numpy()[0]))
-            fig2 = go.Figure()
-            fig2.add_trace(go.Box(y=data[str(input_d2)],
-                                 boxpoints=False,
-                                 boxmean=True,
-                                 name=str(input_d2)))
-            fig2.add_hline(y=valeur2.values[0], line_width=3, line_color="red")
-            #fig2.update_layout(autosize=False,
-                              #width=500,
-                             # height=500)
-            st.plotly_chart(fig2, use_container_width=True)
+            st.write("Valeur du client : ", str(valeur2.to_numpy()[0]))
+            boxplot(input_d2, valeur2)
     else:
-        st.header("**Prédiction**")
-        st.subheader(input_client)
-        st.markdown("This project was composed of two main objectives:")
+        st.title("Prédiction")
+        st.write('###')
+        st.write('**ID client : **', str(input_client))
+        st.write("##")
+        col3, col4 = st.columns(2)
+        with col3:
+            index = data[data['SK_ID_CURR']==input_client].index
+            pred = np.round(model.predict_proba(data_X.iloc[index])[:,1], 2)
+            st.write("#### Probabilité d'être non solvable")
+            palette = sns.color_palette("Blues_r")
+            fig3, ax = plt.subplots(figsize=(4,1))
+            ax.set_yticks([1])
+            ax.set_yticklabels('')
+            ax.set_xlim(0,1)
+            ax.barh([1], [pred[0]], height=10, color=palette)
+            ax.axvline(0.48,  color='r', ls='--', alpha=0.9)
+            for i, v in enumerate([pred[0]]):
+                ax.text(1.04, 0.1, str(v), color='black', size=15, verticalalignment='center')
+            #ax.set_title("Probabilité d'être non solvable", size=20, pad=20)
+            st.write(fig3)
+            st.write('###')
+        with col4:
+            st.write('####    Prédiction :')
+            st.write('#####')
+            st.write('#####')
+            from annotated_text import annotated_text
+            if pred[0]> 0.48:
+                annotated_text(("    ", "", ""), ("Solvable", "", ""),
+                               ( " /", "", ""),
+                               ("Non solvable", "", "#f90036"))
+            else:
+                annotated_text(("    ", "", ""), ("Solvable", "", "#5cc07f"),
+                               ( " /", "", ""),
+                               ("Non solvable", "", ""))
+            #if pred[0]> 0.48:
+                #annotated_text(( "", "", ""), ( "", "", ""),
+                               #( "", "", ""),
+                               #(" Non solvable", "", "#f90036"))
+            #else:
+                #annotated_text(( "", "", ""),
+                               #("Solvable", "", "#5cc07f"))
+        st.markdown("#### Principales variables influençant la prédiction:")
+        st.markdown("Graphique représentant l'influence des variables vers la prédiction Non solvable (rouge) et vers la prédiction Solvable (vert)")
+        index = data[data['SK_ID_CURR']==input_client].index
+        exp = lime1.explain_instance(x_transformed.iloc[index.values[0]], 
+                                     model[1].predict_proba,
+                                     num_samples=1000)
+        ex = pd.DataFrame(exp.as_list(), columns=['var', 'valeur'])
+        ex["Color"] = np.where(ex['valeur']<0, 'green', 'red')
+        fig5 = go.Figure()
+        fig5.add_trace(
+            go.Bar(name='Valeur',
+                   y=ex['var'],
+                   x=ex['valeur'],
+                   marker_color=ex['Color'],
+                   orientation='h'))
+        fig5.update_layout(barmode='stack',
+                  yaxis=dict(autorange="reversed"))
+        st.plotly_chart(fig5, use_container_width=True)
+        
+        # plot var influence sur non solvable
+        st.markdown("#### Exploration des variables influençant la prédiction Non solvable")
+        col5, col6 = st.columns(2)
+        with col5:
+            input_d3 = st.selectbox("Veuillez sélectionner la variable souhaitée", ex.loc[ex['valeur']>0,'var'].values)
+            valeur3 = data.loc[data['SK_ID_CURR']==input_client, input_d3]
+            st.write("Valeur du client: ", str(valeur3.to_numpy()[0]))
+            boxplot(input_d3, valeur3)
+        with col6:
+            input_d4 = st.selectbox("", ex.loc[ex['valeur']>0,'var'].values)
+            valeur4 = data.loc[data['SK_ID_CURR']==input_client, input_d4]
+            st.write("Valeur du client: ", str(valeur4.to_numpy()[0]))
+            boxplot(input_d4, valeur4)
+        st.markdown("#### Exploration des variables influençant la prédiction Solvable")
+        # plot var influence sur solvable
+        col7, col8 = st.columns(2)
+        with col7:
+            input_d5 = st.selectbox("Veuillez sélectionner la variable souhaitée", ex.loc[ex['valeur']<0,'var'].values)
+            valeur5 = data.loc[data['SK_ID_CURR']==input_client, input_d5]
+            st.write("Valeur du client : ", str(valeur5.to_numpy()[0]))
+            boxplot(input_d5, valeur5)
+        with col8:
+            input_d6 = st.selectbox("", ex.loc[ex['valeur']<0,'var'].values)
+            valeur6 = np.round(data.loc[data['SK_ID_CURR']==input_client, input_d6], 2)
+            st.write("Valeur du client : ", str(valeur6.to_numpy()[0]))
+            boxplot(input_d6, valeur6)
 
