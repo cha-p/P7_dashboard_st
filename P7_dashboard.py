@@ -136,7 +136,8 @@ if rad1 == '🏠 Accueil':
     st.markdown("- Un outil permettant la visualisation de la probabilité d'être Non solvable, l'interprétation de cette probabilité (Non solvable ou Solvable) ainsi que la description des variables ayant influencées cette prédiction.")
 
 if rad1 == '🔎 Exploration des données':
-    label_test = data['SK_ID_CURR'].sort_values().copy()
+    label_test = data['SK_ID_CURR'].copy()
+    label_test = label_test.sort_values()
     st.title("Exploration des données\n ----")
     colc, colb = st.columns(2)
     with colc:
@@ -167,11 +168,12 @@ if rad1 == '🔎 Exploration des données':
     st.markdown("Pour les variables numériques, le boxplot permet de visualiser la médiane (ligne pleine) et la moyenne (trait pointillé) de la population. Vous pouvez également visualiser la valeur du client sous la forme d'une ligne orange.")
 
 if rad1 == '📉 Prédiction':
-    label_test2 = data['SK_ID_CURR'].sort_values().copy()
+    label_test2 = data['SK_ID_CURR'].copy()
+    label_test2 = label_test2.sort_values()
     st.title("Prédiction\n ----")
     colc2, colb2 = st.columns(2)
     with colc2:
-        input_client2 = st.selectbox("Veuillez sélectionner l'identifiant du client", label_test2)
+        input_client2 = st.selectbox("Veuillez sélectionner l'identifiant du client :", label_test2)
     #if colb2.button('Prédiction'):
     col3, col4 = st.columns(2)
     with col3:
