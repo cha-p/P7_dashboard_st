@@ -158,7 +158,7 @@ if rad1 == '🔎 Exploration des données':
         st.write("Valeur du client : ", str(valeur.to_numpy()[0]))
         boxplot(input_d1, valeur)
     with col2:
-        input_d2 = st.selectbox("", data_X.columns.values)
+        input_d2 = st.selectbox("Deuxième variable", data_X.columns.values)
         valeur2 = data.loc[data['SK_ID_CURR']==input_client, input_d2]
         st.write("Valeur du client : ", str(valeur2.to_numpy()[0]))
         boxplot(input_d2, valeur2)
@@ -237,7 +237,7 @@ if rad1 == '📉 Prédiction':
         st.write("Valeur du client: ", str(valeur3.to_numpy()[0]))
         boxplot(input_d3, valeur3)
     with col6:
-        input_d4 = st.selectbox("", ex.loc[ex['valeur']>0,'variables'].values)
+        input_d4 = st.selectbox("Autre variable", ex.loc[ex['valeur']>0,'variables'].values)
         valeur4 = data.loc[data['SK_ID_CURR']==input_client2, input_d4]
         st.write("Valeur du client: ", str(valeur4.to_numpy()[0]))
         boxplot(input_d4, valeur4)
@@ -247,12 +247,12 @@ if rad1 == '📉 Prédiction':
     st.markdown("#####")
     col7, col8 = st.columns(2)
     with col7:
-        input_d5 = st.selectbox("Veuillez sélectionner la variable souhaitée", sorted(ex.loc[ex['valeur']<0,'variables'].values))
+        input_d5 = st.selectbox("Veuillez sélectionner la variable souhaitée :", sorted(ex.loc[ex['valeur']<0,'variables'].values))
         valeur5 = data.loc[data['SK_ID_CURR']==input_client2, input_d5]
         st.write("Valeur du client : ", str(valeur5.to_numpy()[0]))
         boxplot(input_d5, valeur5)
     with col8:
-        input_d6 = st.selectbox("", sorted(ex.loc[ex['valeur']<0,'variables'].values))
+        input_d6 = st.selectbox("Autre variable :", sorted(ex.loc[ex['valeur']<0,'variables'].values))
         valeur6 = data.loc[data['SK_ID_CURR']==input_client2, input_d6]
         st.write("Valeur du client : ", str(valeur6.to_numpy()[0]))
         boxplot(input_d6, valeur6)
