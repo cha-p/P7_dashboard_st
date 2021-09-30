@@ -6,7 +6,7 @@ Dashboard projet 7
 To run : streamlit run P7_dashboard.py
 @author: charlottepostel
 """
-#import os
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -24,7 +24,7 @@ model = pickle.load(open("scoring_model_f2.sav", 'rb'))
 data_X = data.copy()
 data_X = data_X.drop(columns="SK_ID_CURR")
 
-# features
+# Features
 var_cat = []
 for col in data_X.columns:
     if data_X[col].dtypes == object:
@@ -35,7 +35,7 @@ name_features = model[0].transformers_[0][1][0].get_feature_names(var_cat)
 for i in var_num.values:
     name_features = np.append(name_features, i)
 
-# lime
+# Lime
 x_transformed = pd.DataFrame(model[0].transform(data_X),
                              columns=name_features,
                              index=data_X.index)
@@ -48,7 +48,7 @@ lime1 = LimeTabularExplainer(x_transformed,
 
 #data['proba'] = model.predict_proba(data_X)[:,1]
 
-# fonction compte valeur pour pie plot
+# Fonction compte valeur pour pie plot
 def count_val(df, input_cl):
     x = df.value_counts()/len(df)*100
     i = x[x<3].index
@@ -61,16 +61,6 @@ def count_val(df, input_cl):
     x['Other categories <1%'] = temp
     return x
 
-
-# Layout & Navigation panel
-st.set_page_config(page_title="Dashboard",
-                   page_icon="☮",
-                   initial_sidebar_state="expanded")
-sb = st.sidebar # add a side bar 
-sb.write('# Navigation')
-sb.write('###')
-rad1 = sb.radio('Pages',('🏠 Accueil', 
-                         '👨‍ Données relatives aux clients'))
 
 # Fonction pour faire boxplot/pie plotly pour un client donné
 def boxplot(input_d, valeur):
@@ -87,6 +77,11 @@ def boxplot(input_d, valeur):
                     names=x.index)
         fig.update_traces(textposition='outside', textinfo='percent+label')
         fig.update(layout_showlegend=False)
+        fig.update_layout(title={'text': "Distribution sur tous les clients",
+                                 'y':0.9,
+                                 'x':0.5,
+                                 'xanchor': 'center',
+                                 'yanchor': 'top'})
         st.plotly_chart(fig, use_container_width=True)
     elif  set(data[str(input_d)].unique()) == set([0,1]):
         x = data[input_d].value_counts()/len(data)*100
@@ -94,6 +89,11 @@ def boxplot(input_d, valeur):
                      names=data[input_d].value_counts().index)
         fig.update_traces(textposition='outside', textinfo='percent+label')
         fig.update(layout_showlegend=False)
+        fig.update_layout(title={'text': "Distribution sur tous les clients",
+                                 'y':0.9,
+                                 'x':0.5,
+                                 'xanchor': 'center',
+                                 'yanchor': 'top'})
         st.plotly_chart(fig, use_container_width=True)
     else:
         fig = go.Figure()
@@ -103,25 +103,37 @@ def boxplot(input_d, valeur):
                              name=str(input_d)))
         if str(valeur.values[0]) != 'nan':
             fig.add_hline(y=valeur.values[0], line_width=3, line_color="#ff7400")
+        fig.update_layout(title={'text': "Distribution sur tous les clients",
+                                 'y':0.9,
+                                 'x':0.5,
+                                 'xanchor': 'center',
+                                 'yanchor': 'top'})
         st.plotly_chart(fig, use_container_width=True)
 
-
-
-       
+# Layout & Navigation panel
+st.set_page_config(page_title="Dashboard",
+                   page_icon="☮",
+                   initial_sidebar_state="expanded")
+sb = st.sidebar # add a side bar 
+sb.write('# Navigation')
+sb.write('###')
+rad1 = sb.radio('Pages',('🏠 Accueil', 
+                         '👨‍ Données relatives aux clients'))
+   
 
 # Déroulement menu en fonction choix
 if rad1 == '🏠 Accueil':
     st.title("Dashboard\n ----")
-    st.markdown("Cette application interactive est un outil d'aide à la décision pour l'octroi de prêt banquaire.")
+    st.markdown("Cette application interactive est un outil d'aide à la décision pour l'octroi de prêt bancaire.")
     st.markdown("Vous trouverez à gauche sur l'onglet 'Données relatives aux clients' les deux principales fonctionnalités:")
     st.markdown("- Un outil permettant l'exploration des données d'un client sélectionné ainsi que la possibilité de comparer ce client aux autres clients de la banque.")
-    st.markdown("- Un outil permettant la visualisation de la probabilité d'être Non solvable, l'interprétation de cette probabilité (Non solvable ou solvable) ainsi que la description des variables ayant influencées cette prédiction.")
+    st.markdown("- Un outil permettant la visualisation de la probabilité d'être Non solvable, l'interprétation de cette probabilité (Non solvable ou Solvable) ainsi que la description des variables ayant influencées cette prédiction.")
 
 elif rad1 == '👨‍ Données relatives aux clients':
-    sb.write('### ')
+    sb.write('###')
     label_test = data['SK_ID_CURR'].sort_values()
     input_client = sb.selectbox("Veuillez sélectionner l'identifiant du client", label_test)
-    sb.write('### ')
+    sb.write('###')
     rad2 = sb.radio('Exploration des données ou prédiction ?',
                     ['🔎 Exploration des données', '📉 Prédiction'])
     
@@ -130,14 +142,16 @@ elif rad1 == '👨‍ Données relatives aux clients':
         st.title("Exploration des données\n ----")
         st.write('###')
         st.write('**ID client : **', str(input_client))
-        st.write('##')
+        st.write('###')
         st.markdown("#### Données brutes:")
         st.write(data[data['SK_ID_CURR']==input_client])
         st.write('###')
         st.markdown("#### Exploration des données et Comparaisons avec les autres clients :")
+        #st.markdown("Vous trouverez ci-dessous un outil permettant d'obtenir la valeur d'une variable souhaitée ainsi qu'un graphique permettant de visualiser la distribution de cette variable sur tous les clients.")
+        st.markdown("####")
         col1, col2 = st.columns(2)
         with col1:
-            input_d1 = st.selectbox("Veuillez sélectionner la variable souhaitée", data_X.columns.values)
+            input_d1 = st.selectbox("Veuillez sélectionner une variable", data_X.columns.values)
             valeur = data.loc[data['SK_ID_CURR']==input_client, input_d1]
             st.write("Valeur du client : ", str(valeur.to_numpy()[0]))
             boxplot(input_d1, valeur)
@@ -146,11 +160,15 @@ elif rad1 == '👨‍ Données relatives aux clients':
             valeur2 = data.loc[data['SK_ID_CURR']==input_client, input_d2]
             st.write("Valeur du client : ", str(valeur2.to_numpy()[0]))
             boxplot(input_d2, valeur2)
+        #st.markdown("####")
+        st.markdown("__Notes__ : ")
+        st.markdown("La distribution de la variable est représentée par un pie plot ou un boxplot selon la nature de la variable.")
+        st.markdown("Pour les variables numériques, le boxplot permet de visualiser la médiane (ligne pleine) et la moyenne (trait pointillé) de la population. Vous pouvez également visualiser la valeur du client sous la forme d'une ligne orange.")
     else:
         st.title("Prédiction\n ----")
         st.write('###')
         st.write('**ID client : **', str(input_client))
-        st.write("##")
+        st.write("###")
         col3, col4 = st.columns(2)
         with col3:
             index = data[data['SK_ID_CURR']==input_client].index
@@ -182,8 +200,8 @@ elif rad1 == '👨‍ Données relatives aux clients':
                                ( " /", "", ""),
                                ("Non solvable", "", ""))
         
-        st.markdown("#### Principales variables influençant la prédiction:")
-        st.markdown("Graphique représentant l'influence des variables vers la prédiction Non solvable (rouge) et vers la prédiction Solvable (vert)")
+        st.markdown("#### Principales variables influençant la prédiction :")
+        st.markdown("Graphique représentant l'influence des variables sur la prédiction en faveur de la classe Non solvable (rouge) et en faveur de la classe Solvable (vert)")
         index = data[data['SK_ID_CURR']==input_client].index
         exp = lime1.explain_instance(x_transformed.iloc[index.values[0]], 
                                      model[1].predict_proba,
@@ -201,10 +219,11 @@ elif rad1 == '👨‍ Données relatives aux clients':
                   yaxis=dict(autorange="reversed"))
         st.plotly_chart(fig5, use_container_width=True)
         
-        # plot var influence sur non solvable
+        # plot variables influence sur non solvable
         ex["variables"] = ex['var'].apply(lambda x: '_'.join(x.split('_')[:-1]) if any(i in x for i in var_cat) else 0)
         ex.loc[ex['variables']==0, 'variables'] = ex['var'].copy()
-        st.markdown("#### Exploration des variables influençant la prédiction Non solvable")
+        st.markdown("#### Exploration des variables influençant la prédiction en faveur de la classe Non solvable")
+        st.markdown("#####")
         col5, col6 = st.columns(2)
         with col5:
             input_d3 = st.selectbox("Veuillez sélectionner la variable souhaitée", ex.loc[ex['valeur']>0,'variables'].values)
@@ -217,16 +236,17 @@ elif rad1 == '👨‍ Données relatives aux clients':
             st.write("Valeur du client: ", str(valeur4.to_numpy()[0]))
             boxplot(input_d4, valeur4)
         
-        st.markdown("#### Exploration des variables influençant la prédiction Solvable")
-        # plot var influence sur solvable
+        # plot variables influence sur solvable
+        st.markdown("#### Exploration des variables influençant la prédiction en faveur de la classe Solvable")
+        st.markdown("#####")
         col7, col8 = st.columns(2)
         with col7:
-            input_d5 = st.selectbox("Veuillez sélectionner la variable souhaitée", ex.loc[ex['valeur']<0,'variables'].values)
+            input_d5 = st.selectbox("Veuillez sélectionner la variable souhaitée", sorted(ex.loc[ex['valeur']<0,'variables'].values))
             valeur5 = data.loc[data['SK_ID_CURR']==input_client, input_d5]
             st.write("Valeur du client : ", str(valeur5.to_numpy()[0]))
             boxplot(input_d5, valeur5)
         with col8:
-            input_d6 = st.selectbox("", ex.loc[ex['valeur']<0,'variables'].values)
+            input_d6 = st.selectbox("", sorted(ex.loc[ex['valeur']<0,'variables'].values))
             valeur6 = data.loc[data['SK_ID_CURR']==input_client, input_d6]
             st.write("Valeur du client : ", str(valeur6.to_numpy()[0]))
             boxplot(input_d6, valeur6)
