@@ -16,6 +16,11 @@ import pickle
 import seaborn as sns
 import matplotlib.pyplot as plt
 from lime.lime_tabular import LimeTabularExplainer
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from lightgbm import LGBMClassifier
 
 # Import data
 data = pd.read_csv("app_test.csv")
